@@ -54,6 +54,11 @@ module.exports = function(grunt) {
       if(options.afterCopy) {
         copier.on('after-copy', options.afterCopy);
       }
+
+      if(options.onceFinished) {
+        copier.on('oncefinished', options.onceFinished);
+      }
+
       copier.once('copied', callback);
       copier.copy();
     }).get();

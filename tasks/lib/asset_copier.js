@@ -34,36 +34,48 @@ Copier.prototype.copy = function() {
 };
 
 Copier.prototype.copyAssets = function(type, assets) {
-  var self = this;
+  var self = this,
+      dependencies;
   _(assets).each(function(sources, pkg) {
     _(sources).each(function(source) {
       var destination;
       var copyFunction;
 
-      var isFile = fs.statSync(source).isFile();
-      var destinationDir = path.join(self.options.targetDir, self.options.layout(type, pkg));
-      grunt.file.mkdir(destinationDir);
+      if(type !== "dependencies") {
+        var isFile = fs.statSync(source).isFile();
+        var destinationDir = path.join(self.options.targetDir, self.options.layout(type, pkg));
+        grunt.file.mkdir(destinationDir);
 
-      if (isFile) {
-        destination = path.join(destinationDir, path.basename(source));
-        copyFunction = function() { grunt.file.copy(source, destination); };
+        if (isFile) {
+          destination = path.join(destinationDir, path.basename(source));
+          copyFunction = function() { grunt.file.copy(source, destination); };
+        } else {
+          destination = destinationDir;
+          copyFunction = function() { wrench.copyDirSyncRecursive(source, destination); };
+        }
+
+        var notification = {
+          type: (isFile? 'file' : 'directory'),
+          destination: destination,
+          source: source
+        };
+
+        self.emit('before-copy', notification);
+        copyFunction();
+        self.emit('after-copy', notification);
+
+        self.report(source, destination, isFile);
       } else {
-        destination = destinationDir;
-        copyFunction = function() { wrench.copyDirSyncRecursive(source, destination); };
+        dependencies = source;
       }
-
-      var notification = {
-        type: (isFile? 'file' : 'directory'),
-        destination: destination,
-        source: source
-      };
-
-      self.emit('before-copy', notification);
-      copyFunction();
-      self.emit('after-copy', notification);
-
-      self.report(source, destination, isFile);
     });
+
+    self.emit('oncefinished', {
+      clientlib: pkg,
+      destination : path.join(self.options.targetDir, pkg),
+      dependencies : dependencies ? dependencies.toString() : ""
+    });
+
   });
 };
 

@@ -32,9 +32,16 @@ Assets.prototype.addAssets = function(filePatterns, pkg, assetType, pkgPath) {
   var basePath = path.join(this._cwd, pkgPath);
 
   this._assets[assetType] = this._assets[assetType] || {};
-  this._assets[assetType][pkg] = _(grunt.file.expand({cwd: basePath}, filePatterns)).map(function(expandedPath) {
-    return path.join(pkgPath, expandedPath);
-  });
+
+  if (assetType !== "dependencies") {
+    this._assets[assetType][pkg] = _(grunt.file.expand({cwd: basePath}, filePatterns)).map(function(expandedPath) {
+      return path.join(pkgPath, expandedPath);
+    });
+  } else {
+    this._assets[assetType][pkg] = filePatterns;
+  }
+
+  
 };
 
 Assets.prototype.toObject = function() {
